@@ -1,6 +1,6 @@
 CORPUS_DIR=/app/outputs/data/
 VOCAB_FILE=/app/outputs/vocab.txt
-OUTPUT_DIR=/app/outputs/tfrecords
+OUTPUT_DIR=/app/outputs/pretrain_tfrecords
 MAX_SEQ_LENTGH=128
 NUM_PROCESSES=4
 
