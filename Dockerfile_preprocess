@@ -21,6 +21,5 @@ RUN pip3 install --upgrade pip && \
 
 COPY run_preprocess.sh build_pretraining_dataset_preprocess.py tokenization_hf.py /app/
 RUN mkdir -p /app/outputs/data
-RUN mkdir -p /app/outputs/models
 
 CMD ["bash", "run_preprocess.sh"]

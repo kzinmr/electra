@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.1-cudnn8-runtime-ubuntu18.04
+FROM nvidia/cuda:10.2-cudnn7-runtime-ubuntu18.04
 
 WORKDIR /app
 
@@ -24,7 +24,6 @@ COPY pretrain /app/pretrain
 COPY util /app/util
 
 COPY run_pretraining.sh run_pretraining.py configure_pretraining.py /app/
-RUN mkdir -p outputs/data
 RUN mkdir -p outputs/models
 
 CMD ["bash", "run_pretraining.sh"]
