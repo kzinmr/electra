@@ -15,10 +15,16 @@ RUN apt-get update -y && apt-get install -y \
     python3-numpy python3-scipy python3-pip
 
 RUN pip3 install --upgrade pip && \
-    pip install tensorflow-gpu==1.15 scikit-learn tokenizers
+    pip install tensorflow-gpu==1.15 tokenizers
 
-COPY run_tfrecords.sh build_pretraining_dataset_hf.py tokenization_hf.py /app/
+COPY build_pretraining_dataset_hf.py tokenization_hf.py /app/
+
+COPY model /app/model
+COPY pretrain /app/pretrain
+COPY util /app/util
+
+COPY run_pretraining.sh run_pretraining.py configure_pretraining.py /app/
 RUN mkdir -p outputs/data
 RUN mkdir -p outputs/models
 
-CMD ["bash", "run_tfrecords.sh"]
+CMD ["bash", "run_pretraining.sh"]
