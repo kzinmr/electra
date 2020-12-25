@@ -1,0 +1,26 @@
+FROM tensorflow/tensorflow:2.4.0
+
+WORKDIR /app
+
+ENV LANG=C.UTF-8
+
+RUN apt-get update -y && apt-get install -y \
+    git \
+    wget \
+    curl \
+    cmake \
+    unzip \
+    gcc \
+    g++ \
+    mecab \
+    libmecab-dev mecab-ipadic-utf8
+RUN ln -s /etc/mecabrc /usr/local/etc/mecabrc
+
+RUN pip3 install --upgrade pip && \
+    pip install tensorflow-datasets tokenizers mecab-python3 ipadic
+
+COPY run_preprocess.sh build_pretraining_dataset_preprocess.py tokenization_hf.py /app/
+RUN mkdir -p /app/outputs/data
+RUN mkdir -p /app/outputs/models
+
+CMD ["bash", "run_preprocess.sh"]
