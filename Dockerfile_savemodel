@@ -1,4 +1,4 @@
-FROM huggingface/transformers-tensorflow-cpu
+FROM huggingface/transformers-cpu
 
 WORKDIR /app
 
