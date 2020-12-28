@@ -24,7 +24,7 @@ def get_bert_config(config):
 
 
 model_name = 'electra_small_wiki40b_ja_mecab_ipadic'
-data_dir = '/app/outputs/models'
+data_dir = f'/app/outputs/models/{model_name}'
 config = PretrainingConfig(model_name, data_dir)
 bert_config = get_bert_config(config)
 config_file =f'{data_dir}/bert_config.json'
