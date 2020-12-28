@@ -17,6 +17,7 @@ RUN apt-get update -y && apt-get install -y \
 RUN pip3 install --upgrade pip && \
     pip install tokenizers
 
+COPY model /app/model
 COPY util /app/util
 COPY convert_pytorch.py configure_pretraining.py /app/
 
