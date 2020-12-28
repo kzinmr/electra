@@ -15,7 +15,7 @@ RUN apt-get update -y && apt-get install -y \
     python3-numpy python3-scipy python3-pip
 
 RUN pip3 install --upgrade pip && \
-    pip install tensorflow-gpu==1.15 tokenizers
+    pip install tokenizers
 
 COPY build_pretraining_dataset_hf.py tokenization_hf.py /app/
 
