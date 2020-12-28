@@ -1,7 +1,7 @@
 RAW_CORPUS_DIR=/app/outputs/raw
 CORPUS_DIR=/app/outputs/data/
 VOCAB_FILE=/app/outputs/vocab.json
-OUTPUT_DIR=/app/outputs/tfrecords
+OUTPUT_DIR=/app/outputs/pretrain_tfrecords
 # MAX_SEQ_LENTGH=128
 NUM_PROCESSES=8
 SPLIT_FACTOR=50  # NUM_PROCESSES * SPLIT_FACTOR lines per file
