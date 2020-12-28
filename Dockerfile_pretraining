@@ -1,4 +1,4 @@
-FROM nvidia/cuda:10.2-cudnn7-runtime-ubuntu18.04
+FROM tensorflow/tensorflow:1.15.4-gpu-py3
 
 WORKDIR /app
 
