@@ -17,6 +17,6 @@ RUN apt-get update -y && apt-get install -y \
 RUN pip3 install --upgrade pip && \
     pip install tokenizers
 
-COPY convert_pytorch.py configure_pretraining.py /app/
+COPY convert.sh convert_pytorch.py configure_pretraining.py /app/
 
-CMD ["python3", "convert_pytorch.py"]
+CMD ["bash", "convert.sh"]
