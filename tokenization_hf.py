@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional, Union
 
 from tokenizers import BertWordPieceTokenizer
-from tokenizers.models import WordPiece
 
 
 class FullTokenizer(BertWordPieceTokenizer):
