@@ -1,5 +1,6 @@
 RAW_CORPUS_DIR=/app/outputs/raw
 CORPUS_DIR=/app/outputs/data/
+VOCAB_FILE=/app/outputs/vocab.txt
 TOKENIZER_FILE=/app/outputs/tokenizer.json
 OUTPUT_DIR=/app/outputs/pretrain_tfrecords
 # MAX_SEQ_LENTGH=128
@@ -13,6 +14,7 @@ cd /app
 python3 build_pretraining_dataset_preprocess.py \
 --raw-corpus-dir=$RAW_CORPUS_DIR \
 --corpus-dir=$CORPUS_DIR \
+--vocab_file=$VOCAB_FILE \
 --tokenizer-file=$TOKENIZER_FILE \
 --output-dir=$OUTPUT_DIR \
 --num-processes=$NUM_PROCESSES \

@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Union
 from tokenizers import BertWordPieceTokenizer
 
 
-class FullTokenizer(BertWordPieceTokenizer):
+class TrainableTokenizer(BertWordPieceTokenizer):
     """Runs end-to-end tokenziation."""
 
     def __init__(

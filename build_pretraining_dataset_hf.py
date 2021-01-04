@@ -152,7 +152,7 @@ class ExampleWriter(object):
         #     jd = json.loads(fp.read())
         #     settings = jd['normalizer']
         #     settings.pop('type')
-        # tokenizer = tokenization_hf.FullTokenizer(vocab_file, **settings)
+        # tokenizer = tokenization_hf.TrainableTokenizer(vocab_file, **settings)
         tokenizer = Tokenizer.from_file(tokenizer_file)
         self._example_builder = ExampleBuilder(tokenizer, max_seq_length)
         self._writers = []
