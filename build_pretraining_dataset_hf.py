@@ -16,6 +16,7 @@
 """Writes out text data as tfrecords that ELECTRA can be pre-trained on."""
 
 import argparse
+import json
 import multiprocessing
 import os
 import random
@@ -23,7 +24,7 @@ import time
 
 import tensorflow.compat.v1 as tf
 
-import tokenization_hf
+from tokenizers import Tokenizer
 
 # from model import tokenization
 # from util import utils
@@ -45,7 +46,7 @@ def create_int_feature(values):
 class ExampleBuilder(object):
     """Given a stream of input text, creates pretraining examples."""
 
-    def __init__(self, tokenizer, max_length):
+    def __init__(self, tokenizer: Tokenizer, max_length):
         self._tokenizer = tokenizer
         self._current_sentences = []
         self._current_length = 0
@@ -57,7 +58,7 @@ class ExampleBuilder(object):
         line = line.strip().replace("\n", " ")
         if (not line) and self._current_length != 0:  # empty lines separate docs
             return self._create_example()
-        bert_tokids = self._tokenizer.tokenize_as_ids(line)
+        bert_tokids = self._tokenizer(line).ids
         self._current_sentences.append(bert_tokids)
         self._current_length += len(bert_tokids)
         if self._current_length >= self._target_length:
@@ -138,7 +139,7 @@ class ExampleWriter(object):
     def __init__(
         self,
         job_id,
-        vocab_file,
+        tokenizer_file,
         output_dir,
         max_seq_length,
         num_jobs,
@@ -146,7 +147,13 @@ class ExampleWriter(object):
         num_out_files=1000,
     ):
         self._blanks_separate_docs = blanks_separate_docs
-        tokenizer = tokenization_hf.FullTokenizer(vocab_file)
+
+        # with open(tokenizer_file) as fp:
+        #     jd = json.loads(fp.read())
+        #     settings = jd['normalizer']
+        #     settings.pop('type')
+        # tokenizer = tokenization_hf.FullTokenizer(vocab_file, **settings)
+        tokenizer = Tokenizer.from_file(tokenizer_file)
         self._example_builder = ExampleBuilder(tokenizer, max_seq_length)
         self._writers = []
         for i in range(num_out_files):
@@ -192,7 +199,7 @@ def write_examples(job_id, args):
     log("Creating example writer")
     example_writer = ExampleWriter(
         job_id=job_id,
-        vocab_file=args.vocab_file,
+        tokenizer_file=args.tokenizer_file,
         output_dir=args.output_dir,
         max_seq_length=args.max_seq_length,
         num_jobs=args.num_processes,
@@ -228,7 +235,7 @@ def main():
         "--corpus-dir", required=True, help="Location of pre-training text files."
     )
     parser.add_argument(
-        "--vocab-file", required=True, help="Where to write out vocabulary file."
+        "--tokenizer-file", required=True, help="tokenizer.json file."
     )
     parser.add_argument(
         "--output-dir", required=True, help="Where to write out the tfrecords."

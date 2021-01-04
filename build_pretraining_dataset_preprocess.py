@@ -37,8 +37,11 @@ def main():
     parser.add_argument(
         "--corpus-dir", required=True, help="Location of pre-training text files."
     )
+    # parser.add_argument(
+    #     "--vocab-file", required=True, help="Where to write out vocabulary file."
+    # )
     parser.add_argument(
-        "--vocab-file", required=True, help="Where to write out vocabulary file."
+        "--tokenizer-file", required=True, help="Where to write out tokenizer setting file."
     )
     parser.add_argument(
         "--output-dir", required=True, help="Where to write out the tfrecords."
@@ -121,14 +124,21 @@ def main():
     fnames = [os.path.join(args.corpus_dir, fn) for fn in sorted(os.listdir(args.corpus_dir))]
     for fn in fnames:
         assert os.path.exists(fn)
-    tokenizer = tokenization_hf.FullTokenizer()
+    tokenizer = tokenization_hf.FullTokenizer(
+        clean_text=True,
+        handle_chinese_chars=False,
+        strip_accents=False,
+        lowercase=True,
+    )
     tokenizer.train(fnames)
-    tokenizer.save(args.vocab_file)  # as json
-    vocab_txt_file = args.vocab_file.replace('.json', '.txt')
-    with open(args.vocab_file) as fp:
-        jd = json.loads(fp.read())
-    with open(vocab_txt_file, 'w') as fp:
-        fp.write('\n'.join([w for w, vid in sorted(jd['model']['vocab'].items(), key=lambda x: x[1])]))
+    # Save tokenizer setting file as json
+    tokenizer.save(args.tokenizer_file)
+
+    # Save vocab.txt file
+    # with open(args.tokenizer_file) as fp:
+    #     jd = json.loads(fp.read())
+    # with open(args.vocab_file, 'w') as fp:
+    #     fp.write('\n'.join([w for w, vid in sorted(jd['model']['vocab'].items(), key=lambda x: x[1])]))
 
     print("processed")
 
