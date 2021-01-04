@@ -1,8 +1,19 @@
-import os
-# 1. export config from config class
+import argparse
+import torch
+from transformers import (
+    ElectraConfig,
+    ElectraForMaskedLM,
+    ElectraForPreTraining,
+    load_tf_weights_in_electra,
+)
+from transformers.utils import logging
+
 from configure_pretraining import PretrainingConfig
+
 # from util import training_utils
-from transformers import BertConfig, ElectraPreTrainedModel
+
+logging.set_verbosity_info()
+
 
 def get_bert_config(config):
     """Get model hyperparameters based on a pretraining/finetuning config"""
@@ -20,37 +31,15 @@ def get_bert_config(config):
     args["num_attention_heads"] = max(1, args["hidden_size"] // 64)
     args["intermediate_size"] = 4 * args["hidden_size"]
     args.update(**config.model_hparam_overrides)
-    return BertConfig.from_dict(args)  # use transformers instead
+    return ElectraConfig.from_dict(args)  # use transformers instead
 
 
-model_name = 'electra_small_wiki40b_ja_mecab_ipadic'
-data_dir = f'/app/outputs/models/{model_name}'
-config = PretrainingConfig(model_name, data_dir)
-bert_config = get_bert_config(config)
-config_file =f'{data_dir}/bert_config.json'
-with open(config_file, "w") as f:
-  f.write(bert_config.to_json_string())
-
-# from transformers import BertTokenizerFast
-# tokenizer = BertTokenizerFast.from_pretrained(f'{data_dir}/vocab.txt', do_lower_case=True)
-# tokenizer.save_pretrained(f'{data_dir}/')
-
-# 2. export pytorch model (from transformers/src/transformers/models/electra/convert_electra_original_tf_checkpoint_to_pytorch.py)
-"""Convert ELECTRA checkpoint."""
-
-
-import argparse
-
-import torch
-
-from transformers import ElectraConfig, ElectraForMaskedLM, ElectraForPreTraining, load_tf_weights_in_electra
-from transformers.utils import logging
-
-
-logging.set_verbosity_info()
-
-
-def convert_tf_checkpoint_to_pytorch(tf_checkpoint_path, config_file, pytorch_dump_path, discriminator_or_generator):
+def convert_tf_checkpoint_to_pytorch(
+    tf_checkpoint_path, config_file, pytorch_dump_path, discriminator_or_generator
+):
+    """Convert ELECTRA checkpoint.
+    - transformers/src/transformers/models/electra/convert_electra_original_tf_checkpoint_to_pytorch.py
+    """
     # Initialise PyTorch model
     config = ElectraConfig.from_json_file(config_file)
     print("Building PyTorch model from configuration: {}".format(str(config)))
@@ -60,11 +49,16 @@ def convert_tf_checkpoint_to_pytorch(tf_checkpoint_path, config_file, pytorch_du
     elif discriminator_or_generator == "generator":
         model = ElectraForMaskedLM(config)
     else:
-        raise ValueError("The discriminator_or_generator argument should be either 'discriminator' or 'generator'")
+        raise ValueError(
+            "The discriminator_or_generator argument should be either 'discriminator' or 'generator'"
+        )
 
     # Load weights from tf checkpoint
     load_tf_weights_in_electra(
-        model, config, tf_checkpoint_path, discriminator_or_generator=discriminator_or_generator
+        model,
+        config,
+        tf_checkpoint_path,
+        discriminator_or_generator=discriminator_or_generator,
     )
 
     # Save pytorch-model
@@ -76,18 +70,30 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Required parameters
     parser.add_argument(
-        "--tf_checkpoint_path", default=None, type=str, required=True, help="Path to the TensorFlow checkpoint path."
+        "--model_dir",
+        default="/app/outputs/models/",
+        type=str,
+        help="Path to the models.",
     )
     parser.add_argument(
-        "--config_file",
+        "--model_name",
+        default="electra_small_wiki40b_ja_mecab_ipadic",
+        required=True,
+        type=str,
+        help="Name of the model.",
+    )
+    parser.add_argument(
+        "--ckpt_name",
         default=None,
         type=str,
         required=True,
-        help="The config json file corresponding to the pre-trained model. \n"
-        "This specifies the model architecture.",
+        help="Name of the TensorFlow checkpoint.",
     )
     parser.add_argument(
-        "--pytorch_dump_path", default=None, type=str, required=True, help="Path to the output PyTorch model."
+        "--pytorch_dump_path",
+        default=None,
+        type=str,
+        help="Path to the output PyTorch model.",
     )
     parser.add_argument(
         "--discriminator_or_generator",
@@ -98,6 +104,27 @@ if __name__ == "__main__":
         "'generator'.",
     )
     args = parser.parse_args()
+
+    # 1. export config from config class
+    data_dir = args.model_dir + args.model_name
+    config = PretrainingConfig(args.model_name, data_dir)
+    bert_config = get_bert_config(config)
+    config_file = f"{data_dir}/config.json"
+    with open(config_file, "w") as f:
+        f.write(bert_config.to_json_string())
+
+    # from transformers import BertTokenizerFast
+    # tokenizer = BertTokenizerFast.from_pretrained(f'{data_dir}/vocab.txt', do_lower_case=True)
+    # tokenizer.save_pretrained(f'{data_dir}/')
+
+    # 2. export pytorch model
+    tf_checkpoint_path = f"data_dir/{args.ckpt_name}"
+    d_or_g = args.discriminator_or_generator
+    pytorch_dump_path = (
+        f"{data_dir}/model_{d_or_g}.pt"
+        if args.pytorch_dump_path is None
+        else args.pytorch_dump_path
+    )
     convert_tf_checkpoint_to_pytorch(
-        args.tf_checkpoint_path, args.config_file, args.pytorch_dump_path, args.discriminator_or_generator
+        tf_checkpoint_path, config_file, pytorch_dump_path, d_or_g
     )
