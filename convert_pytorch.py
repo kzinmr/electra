@@ -118,7 +118,7 @@ if __name__ == "__main__":
     # tokenizer.save_pretrained(f'{data_dir}/')
 
     # 2. export pytorch model
-    tf_checkpoint_path = f"data_dir/{args.ckpt_name}"
+    tf_checkpoint_path = f"{data_dir}/{args.ckpt_name}"
     d_or_g = args.discriminator_or_generator
     pytorch_dump_path = (
         f"{data_dir}/model_{d_or_g}.pt"
