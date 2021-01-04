@@ -17,7 +17,7 @@ RUN apt-get update -y && apt-get install -y \
 RUN pip3 install --upgrade pip && \
     pip install tokenizers
 
-COPY build_pretraining_dataset_hf.py tokenization_hf.py /app/
+COPY build_pretraining_dataset_hf.py /app/
 
 COPY model /app/model
 COPY pretrain /app/pretrain
