@@ -14,7 +14,7 @@ cd /app
 python3 build_pretraining_dataset_preprocess.py \
 --raw-corpus-dir=$RAW_CORPUS_DIR \
 --corpus-dir=$CORPUS_DIR \
---vocab_file=$VOCAB_FILE \
+--vocab-file=$VOCAB_FILE \
 --tokenizer-file=$TOKENIZER_FILE \
 --output-dir=$OUTPUT_DIR \
 --num-processes=$NUM_PROCESSES \
