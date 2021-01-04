@@ -58,7 +58,7 @@ class ExampleBuilder(object):
         line = line.strip().replace("\n", " ")
         if (not line) and self._current_length != 0:  # empty lines separate docs
             return self._create_example()
-        bert_tokids = self._tokenizer(line).ids
+        bert_tokids = self._tokenizer.encode(line).ids
         self._current_sentences.append(bert_tokids)
         self._current_length += len(bert_tokids)
         if self._current_length >= self._target_length:
