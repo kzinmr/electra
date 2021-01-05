@@ -23,7 +23,7 @@ COPY model /app/model
 COPY pretrain /app/pretrain
 COPY util /app/util
 
-COPY run_pretraining.sh run_pretraining.py configure_pretraining.py /app/
+COPY run_pretraining.sh run_pretraining.py configure_pretraining.py tokenization_hf.py /app/
 RUN mkdir -p outputs/models
 
 CMD ["bash", "run_pretraining.sh"]
