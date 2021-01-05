@@ -16,34 +16,18 @@
 """Writes out text data as tfrecords that ELECTRA can be pre-trained on."""
 
 import argparse
-import json
 import multiprocessing
 import os
 import random
-import tempfile
 import time
 
 import tensorflow.compat.v1 as tf
+from tokenizers import Tokenizer
 
 import tokenization_hf
-from tokenizers import Tokenizer
 
 # from model import tokenization
 # from util import utils
-
-def load_tokenizer(tokenizer_file: str) -> Tokenizer:
-    with open(tokenizer_file) as fp:
-        jd = json.loads(fp.read())
-        settings = jd['normalizer']
-        settings.pop('type')
-        vocab_map = jd['model']['vocab']
-    with tempfile.TemporaryDirectory() as dname:
-        vocab_file = os.path.join(dname, "vocab.txt")
-        with open(vocab_file, 'w') as fp:
-            fp.write('\n'.join([w for w, vid in sorted(vocab_map.items(), key=lambda x: x[1])]))
-        tokenizer = tokenization_hf.MecabBertWordPieceTokenizer(vocab_file, **settings)
-
-    return tokenizer
 
 def rmkdir(path):
     if tf.io.gfile.exists(path):
@@ -163,7 +147,7 @@ class ExampleWriter(object):
     ):
         self._blanks_separate_docs = blanks_separate_docs
         # tokenizer = Tokenizer.from_file(tokenizer_file)  # cannot init MecabPretokenizer
-        tokenizer = load_tokenizer(tokenizer_file)
+        tokenizer = tokenization_hf.load_tokenizer(tokenizer_file)
 
         self._example_builder = ExampleBuilder(tokenizer, max_seq_length)
         self._writers = []

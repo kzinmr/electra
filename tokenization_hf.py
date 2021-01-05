@@ -1,3 +1,6 @@
+import json
+import os
+import tempfile
 import unicodedata
 from typing import Dict, List, Optional, Union
 import MeCab
@@ -7,7 +10,26 @@ from tokenizers import (
     Encoding,
     EncodeInput,
     InputSequence,
+    Tokenizer,
 )
+
+def load_tokenizer(tokenizer_file: str) -> Tokenizer:
+    """ Load BertWordPieceTokenizer from tokenizer.json. This is necessary due to the following reasons:
+    - BertWordPieceTokenizer cannot load from tokenizer.json via .from_file() method
+    - Tokenizer.from_file(tokenizer_file) cannot be used because MecabPretokenizer is not a valid native PreTokenizer.
+    """
+    with open(tokenizer_file) as fp:
+        jd = json.loads(fp.read())
+        settings = jd['normalizer']
+        settings.pop('type')
+        vocab_map = jd['model']['vocab']
+    with tempfile.TemporaryDirectory() as dname:
+        vocab_file = os.path.join(dname, "vocab.txt")
+        with open(vocab_file, 'w') as fp:
+            fp.write('\n'.join([w for w, vid in sorted(vocab_map.items(), key=lambda x: x[1])]))
+        tokenizer = MecabBertWordPieceTokenizer(vocab_file, **settings)
+
+    return tokenizer
 
 
 class MecabPreTokenizer:
