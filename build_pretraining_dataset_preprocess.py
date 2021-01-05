@@ -21,8 +21,6 @@ import os
 import re
 
 import tensorflow_datasets as tfds
-from MeCab import Tagger
-
 import tokenization_hf
 
 
@@ -78,22 +76,19 @@ def main():
 
     print("Pretokenize untokenized raw corpus")
 
-    tagger = Tagger("-Owakati")
-
-    def wakati(data: dict) -> str:
+    def preprocess(data: dict) -> str:
         text = data["text"].decode("utf8")
         text = re.sub("\n+", "\n", text)
         text = text.replace("_START_ARTICLE_", "")
-        text = text.replace("_START_SECTION_", "\n")
-        text = text.replace("_START_PARAGRAPH_", "\n")
+        text = re.sub("\n+_START_SECTION_\n+", "。", text)
+        text = re.sub("\n+_START_PARAGRAPH_\n+", "。", text)
         text = text.replace("_NEWLINE_", "")
-        return tagger.parse(text).strip()
+        return text.strip()  # tagger.parse(text).strip()
 
     if args.wiki40b:
-
         n_files = args.split_factor * args.num_processes
         # for mode in ['validation', 'test']:  # 'train'
-        mode = "train"
+        mode = "validation"
         ds = tfds.load("wiki40b/ja", data_dir=args.raw_corpus_dir, split=mode)
         n_dataset = ds.cardinality().numpy()
         n_lines_per_file = n_dataset // n_files
@@ -101,36 +96,32 @@ def main():
         print(f"{n_lines_per_file} lines per file")
         lines_to_write = []
         file_no_prev = -1
-        for i, ws in enumerate(map(wakati, ds.as_numpy_iterator())):
+        for i, d in enumerate(map(preprocess, ds.as_numpy_iterator())):
             if i % n_lines_per_file == 0 and lines_to_write:
                 file_no = i // n_lines_per_file
                 with open(os.path.join(args.corpus_dir, f"wiki40b_ja_{mode}_{file_no}.txt"), "w") as fp:
                     fp.write("\n\n".join(lines_to_write))
                 lines_to_write = []
                 file_no_prev = file_no
-            lines_to_write.append(ws)
+            lines_to_write.append(d)
         if lines_to_write:
             file_no = file_no_prev + 1
             with open(os.path.join(args.corpus_dir, f"wiki40b_ja_{mode}_{file_no}.txt"), "w") as fp:
                 fp.write("\n\n".join(lines_to_write))
     else:
-        # p = Path(args.raw_corpus_dir)
-        # for f in p.glob('*'):
-        #     with open(f) as fp:
-        #         for i, ws in enumerate(map(wakati, fp.read())):
         exit(1)
 
     print("Fit wordpiece tokenzier")
     fnames = [os.path.join(args.corpus_dir, fn) for fn in sorted(os.listdir(args.corpus_dir))]
     for fn in fnames:
         assert os.path.exists(fn)
-    tokenizer = tokenization_hf.TrainableTokenizer(
-        clean_text=True,
-        handle_chinese_chars=False,
-        strip_accents=False,
-        lowercase=True,
+    tokenizer = tokenization_hf.MecabBertWordPieceTokenizer()
+    tokenizer.train(
+        fnames,
+        vocab_size=30000,
+        min_frequency=2,
+        limit_alphabet=1000,
     )
-    tokenizer.train(fnames)
     # Save tokenizer setting file as json
     tokenizer.save(args.tokenizer_file)
 
