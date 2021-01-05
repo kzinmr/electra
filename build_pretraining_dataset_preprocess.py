@@ -80,8 +80,8 @@ def main():
         text = data["text"].decode("utf8")
         text = re.sub("\n+", "\n", text)
         text = text.replace("_START_ARTICLE_", "")
-        text = re.sub("_START_SECTION_\n+", "\n", text)  # to avoid too long document
-        text = re.sub("\n+_START_PARAGRAPH_\n+", "。", text)
+        text = re.sub("_START_SECTION_\n+", "\n", text)
+        text = re.sub("\n+_START_PARAGRAPH_\n+", "\n", text)
         text = text.replace("_NEWLINE_", "")
         return text.strip()  # tagger.parse(text).strip()
 
