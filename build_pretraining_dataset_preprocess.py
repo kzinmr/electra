@@ -88,7 +88,7 @@ def main():
     if args.wiki40b:
         n_files = args.split_factor * args.num_processes
         # for mode in ['validation', 'test']:  # 'train'
-        mode = "validation"
+        mode = "train"
         ds = tfds.load("wiki40b/ja", data_dir=args.raw_corpus_dir, split=mode)
         n_dataset = ds.cardinality().numpy()
         n_lines_per_file = n_dataset // n_files

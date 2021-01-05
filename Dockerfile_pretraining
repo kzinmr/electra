@@ -12,10 +12,12 @@ RUN apt-get update -y && apt-get install -y \
     unzip \
     gcc \
     g++ \
+    mecab libmecab-dev  \
     python3-numpy python3-scipy python3-pip
+RUN ln -s /etc/mecabrc /usr/local/etc/mecabrc
 
 RUN pip3 install --upgrade pip && \
-    pip install tokenizers
+    pip install tokenizers mecab-python3 ipadic
 
 COPY build_pretraining_dataset_hf.py /app/
 
