@@ -75,16 +75,25 @@ def main():
     args = parser.parse_args()
 
     print("Pretokenize untokenized raw corpus")
-
+    debug = True
     def preprocess(data: dict) -> str:
         text = data["text"].decode("utf8")
         text = re.sub("\n+", "\n", text)
         text = text.replace("_START_ARTICLE_", "")
-        text = re.sub("\n+_START_SECTION_\n+", "。", text)
+        text = re.sub("_START_SECTION_\n+", "\n", text)  # to avoid too long document
         text = re.sub("\n+_START_PARAGRAPH_\n+", "。", text)
         text = text.replace("_NEWLINE_", "")
         return text.strip()  # tagger.parse(text).strip()
-
+    if debug:
+        mode = "validation"
+        ds = tfds.load("wiki40b/ja", data_dir=args.raw_corpus_dir, split=mode)
+        lines_to_write = []
+        for i, d in enumerate(map(preprocess, ds.as_numpy_iterator())):
+            lines_to_write.append(d)
+            if i > 10:
+                break
+        print("\n\n".join(lines_to_write))
+        exit(1)
     if args.wiki40b:
         n_files = args.split_factor * args.num_processes
         # for mode in ['validation', 'test']:  # 'train'
