@@ -29,7 +29,7 @@ def train_custom_tokenizer(
 
     # Save model as f"vocab-{filename}.txt"
     filename = "wordpiece"
-    model_files = tokenizer._tokenizer.model.save(Path(tokenizer_file).parent, filename)
+    model_files = tokenizer._tokenizer.model.save(str(Path(tokenizer_file).parent), filename)
     assert len(model_files) == 1
     new_path = Path(tokenizer_file).parent / 'vocab.txt'
     shutil.move(model_files[0], new_path)
