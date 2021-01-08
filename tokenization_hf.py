@@ -1,4 +1,6 @@
+import shutil
 import unicodedata
+from pathlib import Path
 from typing import List, Optional
 
 import MeCab
@@ -24,6 +26,13 @@ def train_custom_tokenizer(
     #         tokenizer._tokenizer.normalizer.normalize_str(open(files[0]).read())
     #     )
     # )
+
+    # Save model as f"vocab-{filename}.txt"
+    filename = "wordpiece"
+    model_files = tokenizer._tokenizer.model.save(Path(tokenizer_file).parent, filename)
+    assert len(model_files) == 1
+    new_path = Path(tokenizer_file).parent / 'vocab.txt'
+    shutil.move(model_files[0], new_path)
 
     # Set place holder because custom PreTokenzier cannot be serialized.
     tokenizer._tokenizer.pre_tokenizer = BertPreTokenizer()

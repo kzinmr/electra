@@ -17,7 +17,7 @@ RUN apt-get update -y && apt-get install -y \
 RUN ln -s /etc/mecabrc /usr/local/etc/mecabrc
 
 RUN pip3 install --upgrade pip && \
-    pip install tokenizers mecab-python3 ipadic
+    pip install tokenizers mecab-python3 ipadic pytextspan
 
 COPY build_pretraining_dataset_hf.py /app/
 
