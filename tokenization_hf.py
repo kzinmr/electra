@@ -19,11 +19,11 @@ def train_custom_tokenizer(
 
     tokenizer.train(files, **kwargs)
 
-    print(
-        tokenizer._tokenizer.pre_tokenizer.pre_tokenize_str(
-            tokenizer._tokenizer.normalizer.normalize_str(open(files[0]).read())
-        )
-    )
+    # print(
+    #     tokenizer._tokenizer.pre_tokenizer.pre_tokenize_str(
+    #         tokenizer._tokenizer.normalizer.normalize_str(open(files[0]).read())
+    #     )
+    # )
 
     # Set place holder because custom PreTokenzier cannot be serialized.
     tokenizer._tokenizer.pre_tokenizer = BertPreTokenizer()
