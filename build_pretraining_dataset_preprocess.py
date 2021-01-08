@@ -56,7 +56,7 @@ def main():
         help="Parallelize across multiple processes.",
     )
     parser.add_argument(
-        "--split-factor",
+        "--process-factor",
         default=50,
         type=int,
         help="The pretraining texts are splitted into (split-factor * num-processes) files",
@@ -71,7 +71,7 @@ def main():
 
     args = parser.parse_args()
 
-    n_files = args.split_factor * args.num_processes
+    denom = args.process_factor * args.num_processes
     if args.wiki40b:
         # for mode in ['train', 'validation', 'test']:
         mode = "train"
@@ -85,21 +85,24 @@ def main():
         n_document_batch = 128
         train_ds = ds[mode].batch(n_document_batch).prefetch(10)
 
-        n_dataset = ds.cardinality().numpy()
-        n_lines_per_file = n_dataset // n_files
+        n_docs = ds.cardinality().numpy()
+        n_docs_per_file = n_docs // denom
         docs_to_write = []
-        n_current_lines = 0
+        n_current_docs = 0
         file_no = 0
         for example in tfds.as_numpy(train_ds):  # example.shape == (128,)
             for doc_text in example["text"]:
-                doc_lines = [
-                    line.strip()
-                    for line in doc_text.decode("utf-8").split("\n")
-                    if line.strip()  # and line.endswith("。")
-                ]
-                docs_to_write.append("\n".join(doc_lines))
-                n_current_lines += len(doc_lines)
-                if n_current_lines > n_lines_per_file and docs_to_write:
+                docs_to_write.append(
+                    "\n".join(
+                        [
+                            line.strip()
+                            for line in doc_text.decode("utf-8").split("\n")
+                            if line.strip()  # and line.endswith("。")
+                        ]
+                    )
+                )
+                n_current_docs += 1
+                if n_current_docs > n_docs_per_file and docs_to_write:
                     file_no += 1
                     filepath = os.path.join(
                         args.corpus_dir, f"wiki40b_ja_{mode}_{file_no}.txt"
@@ -107,7 +110,7 @@ def main():
                     with open(filepath, "w") as fp:
                         fp.write("\n\n".join(docs_to_write))
                     docs_to_write = []
-                    n_current_lines = 0
+                    n_current_docs = 0
         if docs_to_write:
             file_no += 1
             filepath = os.path.join(args.corpus_dir, f"wiki40b_ja_{mode}_{file_no}.txt")
@@ -116,15 +119,15 @@ def main():
 
     else:
         doc_dir = args.raw_corpus_dir
-        n_dataset = sum(
+        n_docs = sum(
             [
                 sum([1 for fn in files if fn.endswith(".txt")])
                 for _, _, files in os.walk(doc_dir)
             ]
         )
-        n_lines_per_file = n_dataset // n_files
+        n_docs_per_file = n_docs // denom
         docs_to_write = []
-        n_current_lines = 0
+        n_current_docs = 0
         file_no = 0
         for cur, dirs, files in os.walk(doc_dir):
             doc_paths = [os.path.join(cur, fn) for fn in files if fn.endswith(".txt")]
@@ -132,14 +135,14 @@ def main():
                 with open(doc_path) as fp:
                     doc_lines = [l.strip() for l in fp.read().split("\n") if l.strip()]
                     docs_to_write.append("\n".join(doc_lines))
-                    n_current_lines += len(doc_lines)
-                if n_current_lines > n_lines_per_file and docs_to_write:
+                    n_current_docs += 1
+                if n_current_docs > n_docs_per_file and docs_to_write:
                     file_no += 1
                     filepath = os.path.join(args.corpus_dir, f"corpus_{file_no}.txt")
                     with open(filepath, "w") as fp:
                         fp.write("\n\n".join(docs_to_write))
                     docs_to_write = []
-                    n_current_lines = 0
+                    n_current_docs = 0
         if docs_to_write:
             file_no += 1
             filepath = os.path.join(args.corpus_dir, f"corpus_{file_no}.txt")

@@ -5,7 +5,7 @@ TOKENIZER_FILE=/app/outputs/tokenizer.json
 
 # MAX_SEQ_LENTGH=128
 NUM_PROCESSES=8
-SPLIT_FACTOR=50  # NUM_PROCESSES * SPLIT_FACTOR lines per file
+PROCESS_FACTOR=50  # NUM_PROCESSES * SPLIT_FACTOR docs per file
 
 mkdir -p $RAW_CORPUS_DIR
 mkdir -p $CORPUS_DIR
@@ -17,5 +17,5 @@ python3 build_pretraining_dataset_preprocess.py \
 --vocab-file=$VOCAB_FILE \
 --tokenizer-file=$TOKENIZER_FILE \
 --num-processes=$NUM_PROCESSES \
---split-factor=$SPLIT_FACTOR \ 
+--process-factor=$PROCESS_FACTOR \ 
 --wiki40b
