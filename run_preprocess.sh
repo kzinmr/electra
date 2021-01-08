@@ -17,5 +17,5 @@ python3 build_pretraining_dataset_preprocess.py \
 --vocab-file=$VOCAB_FILE \
 --tokenizer-file=$TOKENIZER_FILE \
 --num-processes=$NUM_PROCESSES \
---process-factor=$PROCESS_FACTOR \ 
+--process-factor=$PROCESS_FACTOR \
 --wiki40b

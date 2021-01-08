@@ -85,7 +85,7 @@ def main():
         n_document_batch = 128
         train_ds = ds[mode].batch(n_document_batch).prefetch(10)
 
-        n_docs = ds.cardinality().numpy()
+        n_docs = ds[mode].cardinality().numpy()
         n_docs_per_file = n_docs // denom
         docs_to_write = []
         n_current_docs = 0
