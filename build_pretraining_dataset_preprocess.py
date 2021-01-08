@@ -16,11 +16,9 @@
 """Writes out text data as tfrecords that ELECTRA can be pre-trained on."""
 
 import argparse
-import json
 import os
 import re
 
-import tensorflow_datasets as tfds
 import tokenization_hf
 
 
@@ -28,25 +26,36 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--raw-corpus-dir",
-        required=True,
+        # required=True,
         default="/app/outputs/raw",
         help="Location of raw text files.",
     )
     parser.add_argument(
-        "--corpus-dir", required=True, help="Location of pre-training text files."
+        "--corpus-dir",
+        # required=True,
+        default="/app/outputs/data",
+        help="Location of pre-training text files.",
     )
     parser.add_argument(
-        "--vocab-file", required=True, help="Where to write out vocabulary file."
+        "--vocab-file",
+        # required=True,
+        default="/app/outputs/vocab.txt",
+        help="Where to write out vocabulary file.",
     )
     parser.add_argument(
-        "--tokenizer-file", required=True, help="Where to write out tokenizer setting file."
+        "--tokenizer-file",
+        # required=True,
+        default="/app/outputs/tokenizer.json",
+        help="Where to write out tokenizer setting file.",
     )
-    parser.add_argument(
-        "--output-dir", required=True, help="Where to write out the tfrecords."
-    )
+    # parser.add_argument(
+    #     "--output-dir",
+    #     # required=True,
+    #     help="Where to write out the tfrecords."
+    # )
     parser.add_argument(
         "--num-processes",
-        default=1,
+        default=8,
         type=int,
         help="Parallelize across multiple processes.",
     )
@@ -73,14 +82,20 @@ def main():
     # )
 
     args = parser.parse_args()
-
-    print("Pretokenize untokenized raw corpus")
+    # mecab_option = (
+    #     f"-Owakati -d {args.mecab_dict_path}"
+    #     if args.mecab_dict_path is not None
+    #     else "-Owakati"
+    # )
+    # tagger = MeCab.Tagger(mecab_option)
 
     def preprocess(data: dict) -> str:
         text = data["text"].decode("utf8")
         text = re.sub("\n+", "\n", text)
         text = text.replace("_START_ARTICLE_", "")
-        text = re.sub("_START_SECTION_\n+", "\n", text)
+        # text = text.replace("_START_SECTION_", "\n")
+        text = re.sub("\n+_START_SECTION_\n+", "\n", text)
+        # text = text.replace("_START_PARAGRAPH_", "\n")
         text = re.sub("\n+_START_PARAGRAPH_\n+", "\n", text)
         text = text.replace("_NEWLINE_", "")
         return text.strip()  # tagger.parse(text).strip()
@@ -88,7 +103,7 @@ def main():
     if args.wiki40b:
         n_files = args.split_factor * args.num_processes
         # for mode in ['validation', 'test']:  # 'train'
-        mode = "train"
+        mode = "validation"
         ds = tfds.load("wiki40b/ja", data_dir=args.raw_corpus_dir, split=mode)
         n_dataset = ds.cardinality().numpy()
         n_lines_per_file = n_dataset // n_files
@@ -99,37 +114,34 @@ def main():
         for i, d in enumerate(map(preprocess, ds.as_numpy_iterator())):
             if i % n_lines_per_file == 0 and lines_to_write:
                 file_no = i // n_lines_per_file
-                with open(os.path.join(args.corpus_dir, f"wiki40b_ja_{mode}_{file_no}.txt"), "w") as fp:
+                with open(
+                    os.path.join(args.corpus_dir, f"wiki40b_ja_{mode}_{file_no}.txt"),
+                    "w",
+                ) as fp:
                     fp.write("\n\n".join(lines_to_write))
                 lines_to_write = []
                 file_no_prev = file_no
             lines_to_write.append(d)
         if lines_to_write:
             file_no = file_no_prev + 1
-            with open(os.path.join(args.corpus_dir, f"wiki40b_ja_{mode}_{file_no}.txt"), "w") as fp:
+            with open(
+                os.path.join(args.corpus_dir, f"wiki40b_ja_{mode}_{file_no}.txt"), "w"
+            ) as fp:
                 fp.write("\n\n".join(lines_to_write))
     else:
         exit(1)
 
     print("Fit wordpiece tokenzier")
-    fnames = [os.path.join(args.corpus_dir, fn) for fn in sorted(os.listdir(args.corpus_dir))]
-    for fn in fnames:
-        assert os.path.exists(fn)
-    tokenizer = tokenization_hf.MecabBertWordPieceTokenizer()
-    tokenizer.train(
-        fnames,
+    fnames = [
+        os.path.join(args.corpus_dir, fn) for fn in sorted(os.listdir(args.corpus_dir))
+    ]
+
+    settings = dict(
         vocab_size=30000,
         min_frequency=2,
         limit_alphabet=1000,
     )
-    # Save tokenizer setting file as json
-    tokenizer.save(args.tokenizer_file)
-
-    # Save vocab.txt file (only for pretraining)
-    with open(args.tokenizer_file) as fp:
-        jd = json.loads(fp.read())
-    with open(args.vocab_file, 'w') as fp:
-        fp.write('\n'.join([w for w, vid in sorted(jd['model']['vocab'].items(), key=lambda x: x[1])]))
+    tokenization_hf.train_custom_tokenizer(fnames, args.tokenizer_file, **settings)
 
     print("processed")
 

@@ -1,44 +1,50 @@
-import json
-import os
-import tempfile
 import unicodedata
-from typing import Dict, List, Optional, Union
-import MeCab
-from tokenizers import (
-    AddedToken,
-    BertWordPieceTokenizer,
-    Encoding,
-    EncodeInput,
-    InputSequence,
-    Tokenizer,
-)
+from typing import List, Optional
 
-def load_tokenizer(tokenizer_file: str) -> Tokenizer:
-    """ Load BertWordPieceTokenizer from tokenizer.json. This is necessary due to the following reasons:
-    - BertWordPieceTokenizer cannot load from tokenizer.json via .from_file() method
-    - Tokenizer.from_file(tokenizer_file) cannot be used because MecabPretokenizer is not a valid native PreTokenizer.
-    """
-    with open(tokenizer_file) as fp:
-        jd = json.loads(fp.read())
-        settings = jd['normalizer']
-        settings.pop('type')
-        vocab_map = jd['model']['vocab']
-    with tempfile.TemporaryDirectory() as dname:
-        vocab_file = os.path.join(dname, "vocab.txt")
-        with open(vocab_file, 'w') as fp:
-            fp.write('\n'.join([w for w, vid in sorted(vocab_map.items(), key=lambda x: x[1])]))
-        tokenizer = MecabBertWordPieceTokenizer(vocab_file, **settings)
+import MeCab
+import textspan
+from tokenizers import NormalizedString, PreTokenizedString, Tokenizer
+from tokenizers.implementations import BertWordPieceTokenizer
+from tokenizers.pre_tokenizers import BertPreTokenizer, PreTokenizer
+
+
+def train_custom_tokenizer(
+    files: List[str], tokenizer_file: str, **kwargs
+) -> BertWordPieceTokenizer:
+    tokenizer = BertWordPieceTokenizer(
+        handle_chinese_chars=False,  # for ja
+        strip_accents=False,  # for ja
+    )
+    tokenizer._tokenizer.pre_tokenizer = PreTokenizer.custom(MecabPreTokenizer())
+
+    tokenizer.train(files, **kwargs)
+
+    print(
+        tokenizer._tokenizer.pre_tokenizer.pre_tokenize_str(
+            tokenizer._tokenizer.normalizer.normalize_str(open(files[0]).read())
+        )
+    )
+
+    # Set place holder because custom PreTokenzier cannot be serialized.
+    tokenizer._tokenizer.pre_tokenizer = BertPreTokenizer()
+    tokenizer.save(tokenizer_file)
 
     return tokenizer
 
 
-class MecabPreTokenizer:
-    """ PreTokenizerを継承することはできない """
+def load_custom_tokenizer(tokenizer_file: str) -> Tokenizer:
+    """Load a Tokenizer from tokenizer.json and set a custome PreTokenizer."""
+    # Load all settings.
+    tok = Tokenizer.from_file(tokenizer_file)
+    # Set custom PreTokenizer.
+    tok.pre_tokenizer = PreTokenizer.custom(MecabPreTokenizer())
+    return tok
 
+
+class MecabPreTokenizer:
     def __init__(
         self,
         mecab_dict_path: Optional[str] = None,
-        do_lower_case: bool = False,
         space_replacement: Optional[str] = None,
     ):
         """Constructs a MecabPreTokenizer for huggingface tokenizers.
@@ -48,7 +54,6 @@ class MecabPreTokenizer:
             Special characters like '_' are used sometimes.
         """
 
-        self.do_lower_case = do_lower_case
         self.space_replacement = space_replacement
 
         mecab_option = (
@@ -58,102 +63,131 @@ class MecabPreTokenizer:
         )
         self.mecab = MeCab.Tagger(mecab_option)
 
-    def __call__(self, text: str):
-        return self.pre_tokenize_str(text)
-
-    def pre_tokenize_str(self, sequence: str) -> str:
-        """
-        Pre tokenize the given string
-        This method provides a way to visualize the effect of a
-        :class:`~tokenizers.pre_tokenizers.PreTokenizer` but it does not keep track of the
-        alignment, nor does it provide all the capabilities of the
-        :class:`~tokenizers.PreTokenizedString`. If you need some of these, you can use
-        :meth:`~tokenizers.pre_tokenizers.PreTokenizer.pre_tokenize`
-        Args:
-            sequence (:obj:`str`):
-                A string to pre-tokeize
-        Returns:
-            :obj:`List[Tuple[str, Offsets]]`:
-                A list of tuple with the pre-tokenized parts and their offsets
-        """
+    def tokenize(self, sequence: str) -> List[str]:
         text = unicodedata.normalize("NFKC", sequence)
-        if self.do_lower_case:
-            text = text.lower()
         if self.space_replacement:
             text = text.replace(" ", self.space_replacement)
+            splits = self.mecab.parse(text).strip().split(" ")
+            return [x.replace(self.space_replacement, " ") for x in splits]
+        else:
+            return self.mecab.parse(text).strip().split(" ")
 
-        return self.mecab.parse(text).strip()
+    def custom_split(
+        self, i: int, normalized_string: NormalizedString
+    ) -> List[NormalizedString]:
+        text = str(normalized_string)
+        tokens = self.tokenize(text)
+        tokens_spans = textspan.get_original_spans(tokens, text)
+        return [
+            normalized_string[st:ed]
+            for char_spans in tokens_spans
+            for st, ed in char_spans
+        ]
+
+    def pre_tokenize(self, pretok: PreTokenizedString):
+        pretok.split(self.custom_split)
 
 
-class MecabBertWordPieceTokenizer(BertWordPieceTokenizer):
-    """fast tokenizer"""
+if __name__ == "__main__":
+    s = "今日はいい天気だ\n"
+    with open("test.txt", "wt") as fp:
+        fp.write("今日はいい天気だ\n")
 
-    def __init__(
-        self,
-        vocab: Optional[Union[str, Dict[str, int]]] = None,
-        unk_token: Union[str, AddedToken] = "[UNK]",
-        sep_token: Union[str, AddedToken] = "[SEP]",
-        cls_token: Union[str, AddedToken] = "[CLS]",
-        pad_token: Union[str, AddedToken] = "[PAD]",
-        mask_token: Union[str, AddedToken] = "[MASK]",
-        clean_text: bool = True,
-        handle_chinese_chars: bool = False,  # for ja
-        strip_accents: bool = False,  # for ja
-        lowercase: bool = True,
-        wordpieces_prefix: str = "##",
-        mecab_dict_path: Optional[str] = None,
-        space_replacement: Optional[str] = None,
-    ):
-        """vocab: vocab.txt for WordPiece"""
-        super().__init__(
-            vocab=vocab,
-            unk_token=unk_token,
-            sep_token=sep_token,
-            cls_token=cls_token,
-            pad_token=pad_token,
-            mask_token=mask_token,
-            clean_text=clean_text,
-            handle_chinese_chars=handle_chinese_chars,
-            strip_accents=strip_accents,
-            lowercase=lowercase,
-            wordpieces_prefix=wordpieces_prefix,
-        )
-        # from tokenizers.pre_tokenizers import BertPreTokenizer, Sequence
-        # self.pre_tokenizer = Sequence([
-        #     MecabPreTokenizer(
-        #         mecab_dict_path, lowercase, space_replacement
-        #     ),
-        #     BertPreTokenizer()
-        # ])
-        self.mecab_pretok = MecabPreTokenizer(
-            mecab_dict_path, lowercase, space_replacement
-        )
+    fnames = ["test.txt"]
+    tokenizer_file = "tokenizer_test.json"
+    settings = dict(
+        vocab_size=30000,
+        min_frequency=1,
+        limit_alphabet=1000,
+    )
+    tokenizer = train_custom_tokenizer(fnames, tokenizer_file, **settings)
 
-    def encode(
-        self,
-        sequence: InputSequence,
-        pair: Optional[InputSequence] = None,
-        is_pretokenized: bool = False,
-        add_special_tokens: bool = True,
-    ) -> Encoding:
-        if not is_pretokenized:
-            sequence = self.mecab_pretok(sequence)
-        return super().encode(sequence, pair, is_pretokenized, add_special_tokens)
+    print("load as Tokenizer")
+    tok = Tokenizer.from_file(tokenizer_file)
+    print(tok.encode(s).tokens)
+    tok.pre_tokenizer = PreTokenizer.custom(MecabPreTokenizer())
+    print(tok.encode(s).tokens)
 
-    def encode_batch(
-        self,
-        inputs: List[EncodeInput],
-        is_pretokenized: bool = False,
-        add_special_tokens: bool = True,
-    ) -> List[Encoding]:
-        if not is_pretokenized:
-            # NOTE: reject Tuple[List[str], str] pattern like
-            # ([ "A", "pre", "tokenized", "sequence" ], "And its pair")
-            inputs = [
-                self.mecab_pretok(sequence)
-                if isinstance(sequence, str)
-                else tuple(map(self.mecab_pretok, sequence))
-                for sequence in inputs
-            ]
+    print(tok.normalizer)
+    print(tok.pre_tokenizer)
+    print(tok.model)
+    print(tok.decoder)
 
-        return super().encode_batch(inputs, is_pretokenized, add_special_tokens)
+    # print("load custom tokenizer")
+    # tok = load_custom_tokenizer(tokenizer_file)
+    # print(tok.encode(s).tokens)
+    # print(tok.token_to_id("[SEP]"))
+    # print(tok.token_to_id("[CLS]"))
+    # print(tok.token_to_id("[UNK]"))
+
+    # print(tok.normalizer)
+    # print(tok.pre_tokenizer)
+    # print(tok.model)
+    # print(tok.decoder)
+
+    # Save model as f"vocab-{filename}.txt"
+    # filename = "wordpiece"
+    # model_files = tokenizer._tokenizer.model.save(Path(tokenizer_file).parent, filename)
+    # with open(model_files[0]) as fp:
+    #     print(fp.read())
+
+    # from tokenizers.trainers import WordPieceTrainer
+    # from tokenizers.normalizers import BertNormalizer, NFKC, Sequence
+    # from tokenizers.pre_tokenizers import PreTokenizer, BertPreTokenizer
+    # from tokenizers.decoders import WordPiece as WordPieceDecoder  # BPEDecoder,
+
+    # model = WordPiece()
+    # tokenizer = Tokenizer(model)
+    # tokenizer.normalizer = Sequence(
+    #     [NFKC(), BertNormalizer(handle_chinese_chars = False, strip_accents = False,)]
+    # )
+    # tokenizer.pre_tokenizer = PreTokenizer.custom(MecabPreTokenizer())
+    # tokenizer.decoder = WordPieceDecoder()
+
+    # print([tokenizer.pre_tokenizer.pre_tokenize_str(tokenizer.normalizer.normalize_str(open(fn).read())) for fn in fnames])
+    # trainer = WordPieceTrainer(
+    #     vocab_size=30000,
+    #     min_frequency=1,
+    #     limit_alphabet=1000,
+    # )
+    # tokenizer.train(trainer, fnames)
+    # print(tokenizer.encode(s).tokens)
+    # # save model
+    # model_files = tokenizer.model.save('.', 'model_test')
+    # print(model_files)
+    # with open(model_files[0]) as fp:
+    #     print(fp.read())
+    # # save tokenizer
+    # tokenizer.pre_tokenizer = BertPreTokenizer()
+    # tokenizer.save(tok_file)
+
+    # print('load model only')
+    # vocab_map = WordPiece.read_file(model_files[0])
+    # print(vocab_map)
+    # # model = WordPiece(vocab_map, unk_token='[UNK]')
+    # # tok = Tokenizer(model)
+    # tok = BertWordPieceTokenizer(vocab_map)
+    # print(tok.encode(s).tokens)
+    # tok._tokenizer.pre_tokenizer = PreTokenizer.custom(MecabPreTokenizer())
+
+    # print(tok._tokenizer.normalizer)
+    # print(tok._tokenizer.pre_tokenizer)
+    # print(tok._tokenizer.decoder)
+    # print(tok.encode(s).tokens)
+
+    # extract vocab.txt from tokenizer.json
+    # import tempfile
+    # with open(tokenizer_file) as fp:
+    #     jd = json.loads(fp.read())
+    #     vocab_map = jd["model"]["vocab"]
+    #     with tempfile.TemporaryDirectory() as dname:
+    #         vocab_file = os.path.join(dname, "vocab.txt")
+    #         with open(vocab_file, "w") as fp:
+    #             fp.write(
+    #                 "\n".join(
+    #                     [w for w, vid in sorted(vocab_map.items(), key=lambda x: x[1])]
+    #                 )
+    #             )
+    #         # NOTE: WordPiece model can only be loaded from vocab.txt.
+    #         model = WordPiece(WordPiece.read_file(vocab_file), unk_token="[UNK]")
+    # tok.model = model

@@ -29,6 +29,7 @@ import tokenization_hf
 # from model import tokenization
 # from util import utils
 
+
 def rmkdir(path):
     if tf.io.gfile.exists(path):
         tf.io.gfile.rmtree(path)
@@ -111,7 +112,11 @@ class ExampleBuilder(object):
 
     def _make_tf_example(self, first_segment, second_segment):
         """Converts two "segments" of text into a tf.train.Example."""
-        input_ids = [self._tokenizer.token_to_id("[CLS]")] + first_segment + [self._tokenizer.token_to_id("[SEP]")]
+        input_ids = (
+            [self._tokenizer.token_to_id("[CLS]")]
+            + first_segment
+            + [self._tokenizer.token_to_id("[SEP]")]
+        )
         segment_ids = [0] * len(input_ids)
         if second_segment:
             input_ids += second_segment + [self._tokenizer.token_to_id("[SEP]")]
@@ -146,8 +151,7 @@ class ExampleWriter(object):
         num_out_files=1000,
     ):
         self._blanks_separate_docs = blanks_separate_docs
-        # tokenizer = Tokenizer.from_file(tokenizer_file)  # cannot init MecabPretokenizer
-        tokenizer = tokenization_hf.load_tokenizer(tokenizer_file)
+        tokenizer = tokenization_hf.load_custom_tokenizer(tokenizer_file)
 
         self._example_builder = ExampleBuilder(tokenizer, max_seq_length)
         self._writers = []
@@ -229,9 +233,7 @@ def main():
     parser.add_argument(
         "--corpus-dir", required=True, help="Location of pre-training text files."
     )
-    parser.add_argument(
-        "--tokenizer-file", required=True, help="tokenizer.json file."
-    )
+    parser.add_argument("--tokenizer-file", required=True, help="tokenizer.json file.")
     parser.add_argument(
         "--output-dir", required=True, help="Where to write out the tfrecords."
     )
