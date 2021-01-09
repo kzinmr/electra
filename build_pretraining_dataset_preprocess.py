@@ -17,10 +17,23 @@
 
 import argparse
 import os
+import re
 
 import tensorflow_datasets as tfds
 
 import tokenization_hf
+
+
+def wiki40b_preprocess(data) -> str:
+    text = data.decode("utf-8")
+    text = re.sub("\n+", "\n", text)
+    text = text.replace("_START_ARTICLE_", "")
+    # text = text.replace("_START_SECTION_", "\n")
+    text = re.sub("\n+_START_SECTION_\n+", "\n", text)
+    # text = text.replace("_START_PARAGRAPH_", "\n")
+    text = re.sub("\n+_START_PARAGRAPH_\n+", "\n", text)
+    text = text.replace("_NEWLINE_", "\n")
+    return text.strip()
 
 
 def main():
@@ -91,13 +104,13 @@ def main():
         n_current_docs = 0
         file_no = 0
         for example in tfds.as_numpy(train_ds):  # example.shape == (128,)
-            for doc_text in example["text"]:
+            for doc_text in map(wiki40b_preprocess, example["text"]):
                 docs_to_write.append(
                     "\n".join(
                         [
                             line.strip()
-                            for line in doc_text.decode("utf-8").split("\n")
-                            if line.strip()  # and line.endswith("。")
+                            for line in doc_text.split("\n")
+                            if line.strip() and line.endswith("。")
                         ]
                     )
                 )

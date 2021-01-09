@@ -260,7 +260,7 @@ def main():
     args = parser.parse_args()
 
     rmkdir(args.output_dir)
-    n_processes = 1 #args.num_processes
+    n_processes = args.num_processes
     if n_processes == 1:
         write_examples(0, args)
     else:
