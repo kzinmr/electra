@@ -7,7 +7,7 @@ MAX_SEQ_LENTGH=128
 NUM_PROCESSES=4
 
 mkdir -p $CORPUS_DIR
-mkdir -p $OUTPUT_DIR
+rm -fr $OUTPUT_DIR && mkdir -p $OUTPUT_DIR
 cd /app
 python3 build_pretraining_dataset_hf.py \
 --corpus-dir=$CORPUS_DIR \
