@@ -170,12 +170,16 @@ class ExampleWriter(object):
             for line in f:
                 line = line.strip()
                 if line or self._blanks_separate_docs:
-                    example = self._example_builder.add_line(line)
-                    if example:
-                        self._writers[self.n_written % len(self._writers)].write(
-                            example.SerializeToString()
-                        )
-                        self.n_written += 1
+                    try:
+                        example = self._example_builder.add_line(line)
+                        if example:
+                            self._writers[self.n_written % len(self._writers)].write(
+                                example.SerializeToString()
+                            )
+                            self.n_written += 1
+                    except Exception:
+                        print(input_file)
+                        print(line)
             example = self._example_builder.add_line("")
             if example:
                 self._writers[self.n_written % len(self._writers)].write(
@@ -256,11 +260,12 @@ def main():
     args = parser.parse_args()
 
     rmkdir(args.output_dir)
-    if args.num_processes == 1:
+    n_processes = 1 #args.num_processes
+    if n_processes == 1:
         write_examples(0, args)
     else:
         jobs = []
-        for i in range(args.num_processes):
+        for i in range(n_processes):
             job = multiprocessing.Process(target=write_examples, args=(i, args))
             jobs.append(job)
             job.start()
