@@ -51,6 +51,35 @@ def load_custom_tokenizer(tokenizer_file: str) -> Tokenizer:
     tok.pre_tokenizer = PreTokenizer.custom(MecabPreTokenizer())
     return tok
 
+class PicklableTagger:
+    def __init__(self, mecab_option: str):
+        self.option = mecab_option
+        self.tagger = MeCab.Tagger(mecab_option)
+
+    def __getstate__(self):
+        return {'option': self.option}
+
+    def __setstate__(self, state):
+        for k, v in state.items():
+            setattr(self, k, v)
+
+    def __getnewargs__(self):
+        return self.option,
+
+    def __reduce_ex__(self, proto):
+        func = PicklableTagger
+        args = self.__getnewargs__()
+        state = self.__getstate__()
+        listitems = None
+        dictitems = None
+        rv = (func, args, state, listitems, dictitems)
+        return rv
+
+    def __call__(self, text):
+        return self.parse(text)
+
+    def parse(self, text):
+        return self.tagger.parse(text).rstrip()
 
 class MecabPreTokenizer:
     def __init__(
@@ -72,7 +101,7 @@ class MecabPreTokenizer:
             if mecab_dict_path is not None
             else "-Owakati"
         )
-        self.mecab = MeCab.Tagger(mecab_option)
+        self.mecab = PicklableTagger(mecab_option)
 
     def tokenize(self, sequence: str) -> List[str]:
         text = unicodedata.normalize("NFKC", sequence)
