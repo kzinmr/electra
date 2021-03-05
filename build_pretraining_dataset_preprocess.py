@@ -154,9 +154,9 @@ def main():
     ]
 
     settings = dict(
-        vocab_size=30000,
+        vocab_size=50000,
         min_frequency=5,
-        limit_alphabet=3000,
+        limit_alphabet=6000,
     )
     tokenization_hf.train_custom_tokenizer(fnames, args.tokenizer_file, **settings)
 
