@@ -18,4 +18,4 @@ python3 build_pretraining_dataset_preprocess.py \
 --tokenizer-file=$TOKENIZER_FILE \
 --num-processes=$NUM_PROCESSES \
 --process-factor=$PROCESS_FACTOR \
---wiki40b
+--skip_corpus_generation

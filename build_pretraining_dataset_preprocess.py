@@ -67,6 +67,7 @@ def main():
         help="Whether blank lines indicate document boundaries.",
     )
     parser.add_argument("--wiki40b", action="store_true")
+    parser.add_argument("--skip_corpus_generation", action="store_true")
 
     args = parser.parse_args()
 
@@ -116,7 +117,7 @@ def main():
             with open(filepath, "w") as fp:
                 fp.write("\n\n".join(docs_to_write))
 
-    else:
+    elif not args.skip_corpus_generation:
         doc_dir = args.raw_corpus_dir
         n_docs = sum(
             [
@@ -147,6 +148,8 @@ def main():
             filepath = os.path.join(args.corpus_dir, f"corpus_{file_no}.txt")
             with open(filepath, "w") as fp:
                 fp.write("\n\n".join(docs_to_write))
+    else:
+        print("Corpus generation is skipped")
 
     print("Fit wordpiece tokenzier")
     fnames = [
