@@ -154,7 +154,7 @@ def main():
     ]
 
     settings = dict(
-        vocab_size=50000,
+        vocab_size=30000,
         min_frequency=5,
         limit_alphabet=6000,
     )

@@ -64,7 +64,7 @@ class PretrainingConfig(object):
             else {}
         )
         self.embedding_size = None  # bert hidden size by default
-        self.vocab_size = 50000  # number of tokens in the vocabulary
+        self.vocab_size = 30000  # number of tokens in the vocabulary
         self.do_lower_case = True  # lowercase the input?
 
         # generator settings
