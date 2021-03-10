@@ -54,7 +54,7 @@ class PretrainingConfig(object):
         # change to 0 or None to keep all checkpoints
 
         # model settings
-        self.model_size = "base"  # one of "small", "base", or "large"
+        self.model_size = "small"  # one of "small", "base", or "large"
         # override the default transformer hparams for the provided model size; see
         # modeling.BertConfig for the possible hparams and util.training_utils for
         # the defaults
