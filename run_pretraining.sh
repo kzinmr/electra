@@ -17,4 +17,4 @@ python3 build_pretraining_dataset_hf.py \
 --num-processes=$NUM_PROCESSES
 
 MODEL_NAME=electra_base_wiki40b_ja_mecab_ipadic
-python3 run_pretraining.py --data-dir $DATA_DIR --model-name $MODEL_NAME --hparams '{"model_size": "base", "max_seq_length": 512, "generator_hidden_size": 0.33333, "learning_rate": 2e-4, "train_batch_size": 128, "embedding_size": 768, "num_train_steps": 1000000, "vocab_size": 30000}'
+python3 run_pretraining.py --data-dir $DATA_DIR --model-name $MODEL_NAME --hparams '{"model_size": "base", "max_seq_length": 256, "generator_hidden_size": 0.33333, "learning_rate": 2e-4, "train_batch_size": 128, "embedding_size": 768, "num_train_steps": 1000000, "vocab_size": 30000}'
