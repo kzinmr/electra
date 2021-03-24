@@ -1,5 +1,5 @@
 import argparse
-
+import json
 import torch
 from transformers import (
     ElectraConfig,
@@ -11,7 +11,7 @@ from transformers.utils import logging
 
 from configure_pretraining import PretrainingConfig
 
-# from util import training_utils
+from util import utils
 
 logging.set_verbosity_info()
 
@@ -104,11 +104,21 @@ if __name__ == "__main__":
         help="Whether to export the generator or the discriminator. Should be a string, either 'discriminator' or "
         "'generator'.",
     )
+    parser.add_argument(
+        "--hparams", default="{}", help="JSON dict of model hyperparameters."
+    )
+
     args = parser.parse_args()
 
     # 1. export config from config class
     data_dir = args.model_dir + args.model_name
-    config = PretrainingConfig(args.model_name, data_dir)
+
+    if args.hparams.endswith(".json"):
+        hparams = utils.load_json(args.hparams)
+    else:
+        hparams = json.loads(args.hparams)
+    config = PretrainingConfig(args.model_name, data_dir, **hparams)
+
     bert_config = get_bert_config(config)
     config_file = f"{data_dir}/config.json"
     with open(config_file, "w") as f:

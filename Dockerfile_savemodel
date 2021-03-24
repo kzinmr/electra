@@ -18,5 +18,6 @@ RUN pip3 install --upgrade pip && \
     pip install tokenizers
 
 COPY convert.sh convert_pytorch.py configure_pretraining.py /app/
+COPY util /app/util
 
 CMD ["bash", "convert.sh"]
